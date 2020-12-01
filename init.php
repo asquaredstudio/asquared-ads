@@ -11,7 +11,7 @@
  * Plugin Name: (a)squared ads
  * Plugin URI:  https://asquaredstudio.com
  * Description: A simple managed ad plugin that uses ACF 5.0 as it core
- * Version:     0.0.3
+ * Version:     0.0.4
  * Author:      (a)squaredstudio
  * Author URI:  https://asquaredstudio.com
  * Text Domain: simpleacfads

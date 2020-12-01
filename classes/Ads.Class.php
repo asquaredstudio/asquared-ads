@@ -457,7 +457,7 @@ class Ads {
 						'prepend'           => '',
 						'append'            => '',
 						'min'               => 1,
-						'max'               => 5,
+						'max'               => 50,
 						'step'              => 1,
 					),
 				),
