@@ -29,6 +29,7 @@ class Ads {
 
 			// Filters
 			add_filter('manage_simple_acf_ads_posts_columns', array($this, 'adminColumnsHeaders'));
+			add_filter('the_content', [$this, 'insertAd'], 999, 1);
 
 		}
 
@@ -38,6 +39,71 @@ class Ads {
 		}
 	}
 
+
+	/**
+	 * @param $the_content
+	 *
+	 * @return string|string[]
+	 */
+	public function insertAd($the_content) {
+		if (is_singular('post') && get_field('auto_insert_into_post', 'option')) {
+			$ad_mode = get_field('ad_mode');
+			if ($ad_mode != 'off') {
+				$data_source = $ad_mode == 'override' ? get_the_ID() : 'option';
+
+				$ad_zone = get_field('ad_zone', $data_source);
+				$ad      = do_shortcode('[simple_acf_ads category="' . $ad_zone->slug . '"]');
+
+				$direction = get_field('insert_direction', $data_source);
+				$index     = get_field('insertion_count', $data_source);
+
+				$start_pos       = $this->strpos_all($the_content, '</p>');
+				$paragraph_count = count($start_pos);
+
+				switch ($direction) {
+					case 'beginning' :
+						if ($index >= $paragraph_count)
+							$index = $paragraph_count - 1;
+
+						else
+							$index--;
+
+						break;
+					case 'end':
+						if ($index >= $paragraph_count)
+							$index = 0;
+						else {
+							$index = ($paragraph_count - $index);
+						}
+						break;
+				}
+
+				$the_content = substr_replace($the_content, $ad, $start_pos[$index], 0);
+			}
+
+		}
+
+		return $the_content;
+
+	}
+
+	/**
+	 * Returns the position of all occurences in a string
+	 *
+	 * @param $haystack
+	 * @param $needle
+	 *
+	 * @return array
+	 */
+	private function strpos_all($haystack, $needle) {
+		$offset = 0;
+		$allpos = array();
+		while (($pos = strpos($haystack, $needle, $offset)) !== FALSE) {
+			$offset   = $pos + 1;
+			$allpos[] = $pos;
+		}
+		return $allpos;
+	}
 
 	/**
 	 * ==============================================
@@ -273,9 +339,307 @@ class Ads {
 				'description'           => '',
 			));
 
+			acf_add_local_field_group(array(
+				'key'                   => 'group_5f85a4476ce69',
+				'title'                 => 'Simple ACF Ad Settings',
+				'fields'                => array(
+					array(
+						'key'               => 'field_5f85a45bbadd1',
+						'label'             => 'Auto Insert Into Post',
+						'name'              => 'auto_insert_into_post',
+						'type'              => 'true_false',
+						'instructions'      => 'Add a post type that the ads should be automatically inserted into.',
+						'required'          => 0,
+						'conditional_logic' => 0,
+						'wrapper'           => array(
+							'width' => '',
+							'class' => '',
+							'id'    => '',
+						),
+						'acfe_permissions'  => '',
+						'message'           => '',
+						'default_value'     => 1,
+						'ui'                => 1,
+						'ui_on_text'        => 'Yes',
+						'ui_off_text'       => 'No',
+					),
+					array(
+						'key'                => 'field_5f85af66bee7b',
+						'label'              => 'Ad Category',
+						'name'               => 'ad_zone',
+						'type'               => 'taxonomy',
+						'instructions'       => '',
+						'required'           => 0,
+						'conditional_logic'  => array(
+							array(
+								array(
+									'field'    => 'field_5f85a45bbadd1',
+									'operator' => '==',
+									'value'    => '1',
+								),
+							),
+						),
+						'wrapper'            => array(
+							'width' => '',
+							'class' => '',
+							'id'    => '',
+						),
+						'acfe_permissions'   => '',
+						'taxonomy'           => 'simple_acf_ads_category',
+						'field_type'         => 'select',
+						'allow_null'         => 0,
+						'add_term'           => 0,
+						'save_terms'         => 0,
+						'load_terms'         => 0,
+						'return_format'      => 'object',
+						'acfe_bidirectional' => array(
+							'acfe_bidirectional_enabled' => '0',
+						),
+						'multiple'           => 0,
+					),
+					array(
+						'key'               => 'field_5f85a66b90761',
+						'label'             => 'Count from beginning or end of post',
+						'name'              => 'insert_direction',
+						'type'              => 'radio',
+						'instructions'      => 'This option will determine which direction the count will start from, either from the beginning of the document or the end allowing better positioning of the ad.',
+						'required'          => 0,
+						'conditional_logic' => array(
+							array(
+								array(
+									'field'    => 'field_5f85a45bbadd1',
+									'operator' => '==',
+									'value'    => '1',
+								),
+							),
+						),
+						'wrapper'           => array(
+							'width' => '50',
+							'class' => '',
+							'id'    => '',
+						),
+						'acfe_permissions'  => '',
+						'choices'           => array(
+							'beginning' => 'Start from the beginning',
+							'end'       => 'Start from the end',
+						),
+						'allow_null'        => 0,
+						'other_choice'      => 0,
+						'default_value'     => 'beginning',
+						'layout'            => 'vertical',
+						'return_format'     => 'value',
+						'save_other_choice' => 0,
+					),
+					array(
+						'key'               => 'field_5f85a70f90762',
+						'label'             => 'Place after # paragraphs in post',
+						'name'              => 'insertion_count',
+						'type'              => 'number',
+						'instructions'      => '',
+						'required'          => 0,
+						'conditional_logic' => array(
+							array(
+								array(
+									'field'    => 'field_5f85a45bbadd1',
+									'operator' => '==',
+									'value'    => '1',
+								),
+							),
+						),
+						'wrapper'           => array(
+							'width' => '50',
+							'class' => '',
+							'id'    => '',
+						),
+						'acfe_permissions'  => '',
+						'default_value'     => 1,
+						'placeholder'       => '',
+						'prepend'           => '',
+						'append'            => '',
+						'min'               => 1,
+						'max'               => 5,
+						'step'              => 1,
+					),
+				),
+				'location'              => array(
+					array(
+						array(
+							'param'    => 'options_page',
+							'operator' => '==',
+							'value'    => 'acf-options-settings',
+						),
+					),
+				),
+				'menu_order'            => 0,
+				'position'              => 'normal',
+				'style'                 => 'default',
+				'label_placement'       => 'left',
+				'instruction_placement' => 'field',
+				'hide_on_screen'        => '',
+				'active'                => true,
+				'description'           => '',
+				'acfe_display_title'    => '',
+				'acfe_autosync'         => '',
+				'acfe_permissions'      => '',
+				'acfe_form'             => 0,
+				'acfe_meta'             => '',
+				'acfe_note'             => '',
+			));
+			acf_add_local_field_group(array(
+				'key'                   => 'group_5f85b3b9e8e75',
+				'title'                 => 'Ad Settings',
+				'fields'                => array(
+					array(
+						'key'               => 'field_5f85b422c3685',
+						'label'             => 'Ad Mode',
+						'name'              => 'ad_mode',
+						'type'              => 'radio',
+						'instructions'      => 'Select the ad mode',
+						'required'          => 0,
+						'conditional_logic' => 0,
+						'wrapper'           => array(
+							'width' => '',
+							'class' => '',
+							'id'    => '',
+						),
+						'acfe_permissions'  => '',
+						'choices'           => array(
+							'default'  => 'Use the default global ad settings',
+							'off'      => 'Shut off ads for this post',
+							'override' => 'Override the global ad settings',
+						),
+						'allow_null'        => 0,
+						'other_choice'      => 0,
+						'default_value'     => 'default',
+						'layout'            => 'vertical',
+						'return_format'     => 'value',
+						'save_other_choice' => 0,
+					),
+					array(
+						'key'                => 'field_5f85b3ba2105f',
+						'label'              => 'Ad Category',
+						'name'               => 'ad_zone',
+						'type'               => 'taxonomy',
+						'instructions'       => '',
+						'required'           => 0,
+						'conditional_logic'  => array(
+							array(
+								array(
+									'field'    => 'field_5f85b422c3685',
+									'operator' => '==',
+									'value'    => 'override',
+								),
+							),
+						),
+						'wrapper'            => array(
+							'width' => '',
+							'class' => '',
+							'id'    => '',
+						),
+						'acfe_permissions'   => '',
+						'taxonomy'           => 'simple_acf_ads_category',
+						'field_type'         => 'select',
+						'allow_null'         => 0,
+						'add_term'           => 0,
+						'save_terms'         => 0,
+						'load_terms'         => 0,
+						'return_format'      => 'object',
+						'acfe_bidirectional' => array(
+							'acfe_bidirectional_enabled' => '0',
+						),
+						'multiple'           => 0,
+					),
+					array(
+						'key'               => 'field_5f85b3ba210a3',
+						'label'             => 'Count from beginning or end of post',
+						'name'              => 'insert_direction',
+						'type'              => 'radio',
+						'instructions'      => 'This option will determine which direction the count will start from, either from the beginning of the document or the end allowing better positioning of the ad.',
+						'required'          => 0,
+						'conditional_logic' => array(
+							array(
+								array(
+									'field'    => 'field_5f85b422c3685',
+									'operator' => '==',
+									'value'    => 'override',
+								),
+							),
+						),
+						'wrapper'           => array(
+							'width' => '50',
+							'class' => '',
+							'id'    => '',
+						),
+						'acfe_permissions'  => '',
+						'choices'           => array(
+							'beginning' => 'Start from the beginning',
+							'end'       => 'Start from the end',
+						),
+						'allow_null'        => 0,
+						'other_choice'      => 0,
+						'default_value'     => 'beginning',
+						'layout'            => 'vertical',
+						'return_format'     => 'value',
+						'save_other_choice' => 0,
+					),
+					array(
+						'key'               => 'field_5f85b3ba210e4',
+						'label'             => 'Place after # paragraphs in post',
+						'name'              => 'insertion_count',
+						'type'              => 'number',
+						'instructions'      => '',
+						'required'          => 0,
+						'conditional_logic' => array(
+							array(
+								array(
+									'field'    => 'field_5f85b422c3685',
+									'operator' => '==',
+									'value'    => 'override',
+								),
+							),
+						),
+						'wrapper'           => array(
+							'width' => '50',
+							'class' => '',
+							'id'    => '',
+						),
+						'acfe_permissions'  => '',
+						'default_value'     => 1,
+						'placeholder'       => '',
+						'prepend'           => '',
+						'append'            => '',
+						'min'               => 1,
+						'max'               => 5,
+						'step'              => 1,
+					),
+				),
+				'location'              => array(
+					array(
+						array(
+							'param'    => 'post_type',
+							'operator' => '==',
+							'value'    => 'post',
+						),
+					),
+				),
+				'menu_order'            => 0,
+				'position'              => 'normal',
+				'style'                 => 'default',
+				'label_placement'       => 'left',
+				'instruction_placement' => 'field',
+				'hide_on_screen'        => '',
+				'active'                => true,
+				'description'           => '',
+				'acfe_display_title'    => '',
+				'acfe_autosync'         => '',
+				'acfe_permissions'      => '',
+				'acfe_form'             => 0,
+				'acfe_meta'             => '',
+				'acfe_note'             => '',
+			));
+
 		endif;
 	}
-
 
 	/**
 	 * ==============================================
@@ -372,7 +736,6 @@ class Ads {
 		return ob_get_clean();
 	}
 
-
 	/**
 	 * ==============================================
 	 *  adminColumnsOutput
@@ -414,7 +777,6 @@ class Ads {
 		}
 	}
 
-
 	/**
 	 * ==============================================
 	 *  adminColumnsHeaders
@@ -441,7 +803,6 @@ class Ads {
 		return $columns;
 	}
 
-
 	/**
 	 * ==============================================
 	 *  notifyInstallOrUpdate
@@ -459,7 +820,6 @@ class Ads {
 
 		printf('<div class="%1$s"><p>%2$s</p></div>', esc_attr($class), $message);
 	}
-
 
 	/**
 	 * ==============================================
@@ -481,8 +841,13 @@ class Ads {
 			'simple_acf_ads_help',
 			array($this, 'renderHelpPage')
 		);
-	}
 
+		acf_add_options_sub_page(array(
+			'page_title'  => 'Settings',
+			'menu_title'  => 'Settings',
+			'parent_slug' => 'edit.php?post_type=simple_acf_ads',
+		));
+	}
 
 	/**
 	 * ==============================================
