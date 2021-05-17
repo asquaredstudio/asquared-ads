@@ -46,9 +46,10 @@ class Ads {
 	 * @return string|string[]
 	 */
 	public function insertAd($the_content) {
-		if (is_singular('post') && get_field('auto_insert_into_post', 'option')) {
+		if (is_singular('post')) {
+			$auto_insert = get_field('auto_insert_into_post', 'option');
 			$ad_mode = get_field('ad_mode');
-			if ($ad_mode != 'off') {
+			if (($ad_mode == 'override') || ($auto_insert && $ad_mode == 'default')) {
 				$data_source = $ad_mode == 'override' ? get_the_ID() : 'option';
 
 				$ad_zone = get_field('ad_zone', $data_source);
@@ -348,7 +349,7 @@ class Ads {
 						'label'             => 'Auto Insert Into Post',
 						'name'              => 'auto_insert_into_post',
 						'type'              => 'true_false',
-						'instructions'      => 'Add a post type that the ads should be automatically inserted into.',
+						'instructions'      => 'Automatically inserts ads into standard blog posts.',
 						'required'          => 0,
 						'conditional_logic' => 0,
 						'wrapper'           => array(
